@@ -1,8 +1,7 @@
 
 package com.barrowspath;
 
-import net.runelite.api.Client;
-import net.runelite.api.coords.LocalPoint;
+import lombok.Getter;
 import net.runelite.api.coords.WorldPoint;
 
 import java.awt.*;
@@ -12,11 +11,16 @@ import java.util.Random;
 import java.util.Set;
 
 public class Room {
+    @Getter
     private final String name;
-    private final Zone zone;
-    private final int length;
-    private final Set<Door> doors = new HashSet<>();
+    @Getter
     private final Color color;
+    @Getter
+    private final int length;
+    @Getter
+    private final Zone zone;
+
+    private final Set<Door> doors = new HashSet<>();
 
     public Room(String name, WorldPoint point1, WorldPoint point2, Integer length) {
         this.name = name;
@@ -25,42 +29,18 @@ public class Room {
 
         Random random = new Random();
 
-        // Generate random hue, saturation, and brightness values (each between 0.0 and 1.0)
-        float hue = random.nextFloat();          // Hue: 0.0 <= hue < 1.0
-        float saturation = random.nextFloat();   // Saturation: 0.0 <= saturation < 1.0
-        float brightness = random.nextFloat();   // Brightness: 0.0 <= brightness < 1.0
-        this.color = Color.getHSBColor(hue, saturation, brightness);
+        this.color = Color.getHSBColor(random.nextFloat(), random.nextFloat(), random.nextFloat());
     }
 
     public void addDoor(Door door) {
         doors.add(door);
     }
 
-    // Get an unmodifiable view of this room's doors.
     public Set<Door> getDoors() {
         return Collections.unmodifiableSet(doors);
     }
 
     public boolean contains(WorldPoint point) {
         return zone.contains(point);
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public Integer getLength()
-    {
-        return length;
-    }
-
-    public Zone getZone()
-    {
-        return zone;
-    }
-
-    public Color getColor()
-    {
-        return color;
     }
 }

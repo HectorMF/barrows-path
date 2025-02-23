@@ -15,9 +15,6 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.*;
 
 @Slf4j
@@ -31,7 +28,8 @@ public class BarrowsPathPlugin extends Plugin
 	@Named("developerMode")
 	private boolean developerMode = true;
 
-	static final Zone barrowsZone = new Zone(new WorldPoint(3524, 9667, 0), new WorldPoint(3579, 9722, 0));
+	static final Zone barrowsArea = new Zone(new WorldPoint(3524, 9667, 0), new WorldPoint(3579, 9722, 3));
+	static final Zone tunnels = new Zone(new WorldPoint(3524, 9667, 0), new WorldPoint(3579, 9722, 0));
 
 	@Inject
 	private Client client;
@@ -53,7 +51,7 @@ public class BarrowsPathPlugin extends Plugin
 
 	@Getter
 	private final Set<Door> doors = new HashSet<>();
-	private int delayTicksUntilLevelsInitialized = 2;
+	private int delayTicks = 2;
 
 	@Override
 	protected void startUp() throws Exception
@@ -95,7 +93,7 @@ public class BarrowsPathPlugin extends Plugin
 		Room sw_to_nw = new Room("South West to North West Hallway", new WorldPoint(3528, 9712, 0), new WorldPoint(3524,9677, 0), 35);
 		Room nw_to_ne = new Room("North West to North East Hallway", new WorldPoint(3534, 9722, 0), new WorldPoint(3569, 9718, 0), 35);
 		Room ne_to_se = new Room("North East to South East Hallway", new WorldPoint(3579, 9712, 0), new WorldPoint(3575, 9677, 0), 35);
-		ArrayList<PreciseWorldPoint> path = new ArrayList<>();
+
 		// Doors
 		Door se_n = new Door(13196943, 13200424, se, e_to_se);
 		Door se_e = new Door(13220956, 13220897, se, ne_to_se);
@@ -137,63 +135,6 @@ public class BarrowsPathPlugin extends Plugin
 		Door c_e = new Door(13162782, 13162723, e_to_c, c);
 		Door c_s = new Door(13141483, 13138002, s_to_c, c);
 		Door c_w = new Door(13117470, 13117529, w_to_c, c);
-
-		// Add custom pathing for long hallways
-		se_e.setPath(Arrays.asList(
-				new PreciseWorldPoint(3569, 9678, -1),
-				new PreciseWorldPoint(3576, 9678, -1),
-				new PreciseWorldPoint(3579, 9681, -1),
-				new PreciseWorldPoint(3579, 9694, -1)
-		));
-
-		se_s.setPath(Arrays.asList(
-				new PreciseWorldPoint(3569, 9678, -1),
-				new PreciseWorldPoint(3569, 9671, -1),
-				new PreciseWorldPoint(3566, 9668, -1),
-				new PreciseWorldPoint(3552, 9668, -1)
-		));
-
-		sw_s.setPath(Arrays.asList(
-				new PreciseWorldPoint(3535, 9678, -1),
-				new PreciseWorldPoint(3535, 9671, -1),
-				new PreciseWorldPoint(3538, 9668, -1),
-				new PreciseWorldPoint(3552, 9668, -1)
-		));
-
-		sw_w.setPath(Arrays.asList(
-				new PreciseWorldPoint(3535, 9678, -1),
-				new PreciseWorldPoint(3528, 9678, -1),
-				new PreciseWorldPoint(3525, 9681, -1),
-				new PreciseWorldPoint(3525, 9695, -1)
-		));
-
-		nw_n.setPath(Arrays.asList(
-				new PreciseWorldPoint(3535, 9712, -1),
-				new PreciseWorldPoint(3535, 9719, -1),
-				new PreciseWorldPoint(3538, 9722, -1),
-				new PreciseWorldPoint(3552, 9722, -1)
-		));
-
-		nw_w.setPath(Arrays.asList(
-				new PreciseWorldPoint(3535, 9712, -1),
-				new PreciseWorldPoint(3528, 9712, -1),
-				new PreciseWorldPoint(3525, 9709, -1),
-				new PreciseWorldPoint(3525, 9695, -1)
-		));
-
-		ne_n.setPath(Arrays.asList(
-				new PreciseWorldPoint(3569, 9712, -1),
-				new PreciseWorldPoint(3569, 9719, -1),
-				new PreciseWorldPoint(3566, 9722, -1),
-				new PreciseWorldPoint(3552, 9722, -1)
-		));
-
-		ne_e.setPath(Arrays.asList(
-				new PreciseWorldPoint(3569, 9712, -1),
-				new PreciseWorldPoint(3576, 9712, -1),
-				new PreciseWorldPoint(3579, 9709, -1),
-				new PreciseWorldPoint(3579, 9694, -1)
-		));
 
 		Set<Room> rooms = new HashSet<>();
 		rooms.add(se);
@@ -279,7 +220,7 @@ public class BarrowsPathPlugin extends Plugin
 	{
 		if (gameStateChanged.getGameState().equals(GameState.LOGGING_IN) || gameStateChanged.getGameState().equals(GameState.HOPPING))
 		{
-			this.delayTicksUntilLevelsInitialized = 2;
+			this.delayTicks = 2;
 			this.solution.invalidate();
 		}
 	}
@@ -287,51 +228,41 @@ public class BarrowsPathPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
-		log.debug(event.getMessage());
-
-		// Check that the chat message is a game message.
+		// You messed up the last puzzle door, solve the new maze!
 		if (event.getType() == ChatMessageType.GAMEMESSAGE)
 		{
-			String message = event.getMessage();
-			// Check if the message contains your specific text.
-			if (message.contains("catacombs moving around you"))
+			if (event.getMessage().contains("catacombs moving around you"))
 			{
-				// Trigger a new maze solve.
-				// You might want to log or do additional checks.
 				log.info("Puzzle message detected; triggering new maze solve");
-
-				delayTicksUntilLevelsInitialized = 1;
+				delayTicks = 1;
 			}
 		}
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick gameTick) {
-		// Get the player's current world location once.
-		WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
-
+		WorldPoint location = client.getLocalPlayer().getWorldLocation();
 		// Only proceed if the player is in the Barrows zone.
-		if (!BarrowsPathPlugin.barrowsZone.contains(playerLocation)) {
+		if (!BarrowsPathPlugin.tunnels.contains(location)) {
 			solution.invalidate();
 			return;
 		}
 
-		// Decrement delay counter if needed and update door statuses when it reaches 0.
-		if (delayTicksUntilLevelsInitialized > 0) {
-			delayTicksUntilLevelsInitialized--;
-			if (delayTicksUntilLevelsInitialized == 0) {
-				log.debug("Two ticks have passed since the player logged in. Re-updating max pouch capacities (RC Level: {})");
+		// The doors aren't updated for a couple ticks.
+		// We need to wait to for that point
+		if (delayTicks > 0) {
+			delayTicks--;
+			if (delayTicks == 0) {
 				for (Door door : doors) {
 					door.updateStatus(client);
 				}
-				log.debug("Solving Maze");
-				solution = maze.solve(client.getLocalPlayer().getWorldLocation());
+
+				solution.invalidate();
 			}
-		}else{
-			if(solution.isInvalid()) {
-				log.debug("Solving Maze");
-				solution = maze.solve(client.getLocalPlayer().getWorldLocation());
-			}
+		}
+
+		if(solution.isInvalid()) {
+			solution = maze.solve(location);
 		}
 	}
 
@@ -363,8 +294,10 @@ public class BarrowsPathPlugin extends Plugin
 	@Subscribe
 	public void onWallObjectSpawned(WallObjectSpawned event)
 	{
-		//if (!BarrowsPathPlugin.barrowsZone.contains(client.getLocalPlayer().getWorldLocation()))
-		//	return;
+		if(!barrowsArea.contains(client.getLocalPlayer().getWorldLocation()))
+		{
+			return;
+		}
 
 		WallObject wallObject = event.getWallObject();
 		Door spawnedDoor = findMatchingDoor(wallObject);
@@ -378,9 +311,11 @@ public class BarrowsPathPlugin extends Plugin
 	@Subscribe
 	public void onWallObjectDespawned(WallObjectDespawned event)
 	{
-		//if (!BarrowsPathPlugin.barrowsZone.contains(client.getLocalPlayer().getWorldLocation()))
-		//	return;
-		log.debug("DESPAWNED");
+		if(!barrowsArea.contains(client.getLocalPlayer().getWorldLocation()))
+		{
+			return;
+		}
+
 		Door despawnedDoor = findMatchingDoor(event.getWallObject());
 		if(despawnedDoor != null) {
 			despawnedDoor.removeWallObject(event.getWallObject());
@@ -388,17 +323,12 @@ public class BarrowsPathPlugin extends Plugin
 	}
 
 	private Door findMatchingDoor(WallObject wallObject) {
-		// Get the target value (for example, the hash of the wall object's world location)
 		int targetHash = wallObject.getWorldLocation().hashCode();
-
-		// Iterate through the doors and check whether one of its ids equals the target
 		for (Door door : doors) {
 			if (door.hasId(targetHash)) {
-				return door;  // found a match!
+				return door;
 			}
 		}
-
-		// No door matched the wall object.
 		return null;
 	}
 }

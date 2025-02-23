@@ -2,6 +2,9 @@
  * Copyright (c) 2019, Trevor <https://github.com/Trevor159>
  * All rights reserved.
  *
+ * Copyright (c) 2021, Zoinkwiz <https://github.com/Zoinkwiz>
+ * All rights reserved. (getPolygon, addToPoly)
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
@@ -23,14 +26,16 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package com.barrowspath;
 
 import lombok.Getter;
-import static net.runelite.api.Constants.REGION_SIZE;
-
 import net.runelite.api.Client;
+import net.runelite.api.Perspective;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
+
+import java.awt.Polygon;
 
 public class Zone
 {
@@ -45,15 +50,11 @@ public class Zone
     private int minPlane = 0;
     private int maxPlane = 2;
 
-    //The first plane of the "Overworld"
-    public Zone()
-    {
-        minX = 1152;
-        maxX = 3903;
-        minY = 2496;
-        maxY = 4159;
-        maxPlane = 0;
-    }
+    // Constants for polygon corner indices
+    private static final int SW = 0;
+    private static final int NW = 3;
+    private static final int NE = 2;
+    private static final int SE = 1;
 
     public Zone(WorldPoint p1, WorldPoint p2)
     {
@@ -65,32 +66,6 @@ public class Zone
         maxY = Math.max(p1.getY(), p2.getY());
         minPlane = Math.min(p1.getPlane(), p2.getPlane());
         maxPlane = Math.max(p1.getPlane(), p2.getPlane());
-    }
-
-    public Zone(WorldPoint p)
-    {
-        assert(p != null);
-        minX = p.getX();
-        maxX = p.getX();
-        minY = p.getY();
-        maxY = p.getY();
-        minPlane = p.getPlane();
-        maxPlane = p.getPlane();
-    }
-
-    public Zone(int regionID)
-    {
-        minX = ((regionID >> 8) & 0xFF) << 6;
-        maxX = minX + REGION_SIZE;
-        minY = (regionID & 0xFF) << 6;
-        maxY = minY + REGION_SIZE;
-    }
-
-    public Zone(int regionID, int plane)
-    {
-        this(regionID);
-        minPlane = plane;
-        maxPlane = plane;
     }
 
     public boolean contains(WorldPoint worldPoint)
@@ -108,10 +83,70 @@ public class Zone
         return new WorldPoint(minX, minY, minPlane);
     }
 
-    public PreciseWorldPoint getCenter()
+    public Polygon getPolygon(Client client)
     {
-        //LocalPoint min = LocalPoint.fromWorld(client.getTopLevelWorldView(), new WorldPoint(minX, minY, 0));
-        //LocalPoint max = LocalPoint.fromWorld(client.getTopLevelWorldView(), new WorldPoint(maxX, maxY, 0));
-        return new PreciseWorldPoint(Math.round((minX + maxX)/2.0), Math.round((minY + maxY)/2.0), -1);
+        Polygon areaPoly = new Polygon();
+        if (client == null)
+        {
+            return areaPoly;
+        }
+        // Use the plane from the zone's minimum world point.
+        int plane = getMinWorldPoint().getPlane();
+
+        // Top edge: from minX (inclusive) to maxX (exclusive)
+        for (int x = minX; x < maxX; x++)
+        {
+            addToPoly(client, areaPoly, new WorldPoint(x, maxY, plane), NW);
+        }
+
+        // NE corner of the zone
+        addToPoly(client, areaPoly, new WorldPoint(maxX, maxY, plane), NW, NE, SE);
+
+        // Right edge: from maxY - 1 down to minY + 1 (exclusive minY)
+        for (int y = maxY - 1; y > minY; y--)
+        {
+            addToPoly(client, areaPoly, new WorldPoint(maxX, y, plane), SE);
+        }
+
+        // SE corner of the zone
+        addToPoly(client, areaPoly, new WorldPoint(maxX, minY, plane), SE, SW);
+
+        // Bottom edge: from maxX - 1 down to minX (exclusive minX)
+        for (int x = maxX - 1; x > minX; x--)
+        {
+            addToPoly(client, areaPoly, new WorldPoint(x, minY, plane), SW);
+        }
+
+        // SW corner of the zone
+        addToPoly(client, areaPoly, new WorldPoint(minX, minY, plane), SW, NW);
+
+        // Left edge: from minY + 1 up to maxY (exclusive maxY)
+        for (int y = minY + 1; y < maxY; y++)
+        {
+            addToPoly(client, areaPoly, new WorldPoint(minX, y, plane), NW);
+        }
+
+        return areaPoly;
+    }
+
+    private static void addToPoly(Client client, Polygon areaPoly, WorldPoint wp, int... points)
+    {
+        LocalPoint localPoint = LocalPoint.fromWorld(client.getTopLevelWorldView(), wp);
+        if (localPoint == null)
+        {
+            return;
+        }
+        Polygon poly = Perspective.getCanvasTilePoly(client, localPoint);
+        if (poly != null)
+        {
+            for (int point : points)
+            {
+                // Only add if the index is valid
+                if (point >= 0 && point < poly.npoints)
+                {
+                    areaPoly.addPoint(poly.xpoints[point], poly.ypoints[point]);
+                }
+            }
+        }
     }
 }
