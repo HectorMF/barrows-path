@@ -1,4 +1,4 @@
-package com.barrowspath;
+package com.barrows.path;
 
 import com.google.inject.Provides;
 import javax.inject.Inject;
@@ -19,14 +19,16 @@ import java.util.*;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Shows the path to the barrows chest"
+	name = "Barrows Path",
+	description = "Highlights the path to the chest",
+	tags = {"Barrows", "Barrows Doors", "Barrows Chest", "Barrows Path", "Tunnels"}
 )
 public class BarrowsPathPlugin extends Plugin
 {
 	@Getter
 	@Inject
 	@Named("developerMode")
-	private boolean developerMode = true;
+	private boolean developerMode = false;
 
 	static final Zone barrowsArea = new Zone(new WorldPoint(3524, 9667, 0), new WorldPoint(3579, 9722, 3));
 	static final Zone tunnels = new Zone(new WorldPoint(3524, 9667, 0), new WorldPoint(3579, 9722, 0));

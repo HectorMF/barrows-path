@@ -1,5 +1,5 @@
 
-package com.barrowspath;
+package com.barrows.path;
 
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;

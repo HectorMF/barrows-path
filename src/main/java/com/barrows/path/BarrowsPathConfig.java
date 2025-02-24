@@ -1,4 +1,4 @@
-package com.barrowspath;
+package com.barrows.path;
 
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
@@ -10,7 +10,7 @@ import java.awt.Color;
 public interface BarrowsPathConfig extends Config
 {
 	@ConfigItem(
-			keyName = "overlayColor",
+			keyName = "Barrows Path",
 			name = "Overlay Color",
 			description = "Color of the highlighted path overlay.",
 			position = 3
@@ -24,7 +24,7 @@ public interface BarrowsPathConfig extends Config
 			keyName = "showDebugOverlay",
 			name = "Show Debug Overlay",
 			description = "Shows debug zones",
-			hidden = false,
+			hidden = true,
 			position = Integer.MAX_VALUE
 	)
 	default boolean showDebugOverlay()

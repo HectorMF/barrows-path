@@ -1,4 +1,4 @@
-package com.barrowspath;
+package com.barrows.path;
 
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;

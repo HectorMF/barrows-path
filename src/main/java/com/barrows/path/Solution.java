@@ -1,4 +1,4 @@
-package com.barrowspath;
+package com.barrows.path;
 
 import lombok.Getter;
 
